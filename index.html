@@ -883,15 +883,18 @@
         </div>
         <div class="form-field full">
           <label for="f-autor">Autor *</label>
-          <input type="text" id="f-autor" required />
+          <input type="text" id="f-autor" list="dl-autor" autocomplete="off" required />
+          <datalist id="dl-autor"></datalist>
         </div>
         <div class="form-field">
           <label for="f-genero">Género</label>
-          <input type="text" id="f-genero" placeholder="Ej. Ciencia ficción" />
+          <input type="text" id="f-genero" list="dl-genero" autocomplete="off" placeholder="Ej. Ciencia ficción" />
+          <datalist id="dl-genero"></datalist>
         </div>
         <div class="form-field">
           <label for="f-idioma">Idioma</label>
-          <input type="text" id="f-idioma" placeholder="Ej. Español" />
+          <input type="text" id="f-idioma" list="dl-idioma" autocomplete="off" placeholder="Ej. Español" />
+          <datalist id="dl-idioma"></datalist>
         </div>
         <div class="form-field">
           <label for="f-anio">Año</label>
@@ -903,7 +906,8 @@
         </div>
         <div class="form-field">
           <label for="f-editorial">Editorial</label>
-          <input type="text" id="f-editorial" />
+          <input type="text" id="f-editorial" list="dl-editorial" autocomplete="off" />
+          <datalist id="dl-editorial"></datalist>
         </div>
         <div class="form-field">
           <label for="f-estado">Estado</label>
@@ -1053,6 +1057,21 @@
     select.innerHTML = `<option value="">${placeholder}</option>` +
       values.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
     if (values.includes(current)) select.value = current;
+  }
+
+  // Sugerencias de autocompletado a partir de los libros ya cargados en memoria.
+  function populateDatalists() {
+    fillDatalist('dl-autor', uniqueValues('autor'));
+    fillDatalist('dl-genero', uniqueValues('genero'));
+    fillDatalist('dl-idioma', uniqueValues('idioma'));
+    fillDatalist('dl-editorial', uniqueValues('editorial'));
+  }
+  function uniqueValues(field) {
+    const values = books.map(b => String(b[field] ?? '').trim()).filter(Boolean);
+    return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'es'));
+  }
+  function fillDatalist(id, values) {
+    el(id).innerHTML = values.map(v => `<option value="${escapeAttr(v)}"></option>`).join('');
   }
 
   function escapeHtml(str) {
@@ -1469,6 +1488,7 @@
 
   // ---- Form (add / edit) ----
   function openForm(book) {
+    populateDatalists();
     el('form-heading').textContent = book ? 'Editar libro' : 'Añadir libro';
     el('book-id').value = book ? book.id : '';
     el('f-titulo').value = book?.titulo || '';
