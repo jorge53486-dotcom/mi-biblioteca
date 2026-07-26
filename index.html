@@ -16,6 +16,8 @@
     --sage-light: #8ca67d;
     --burgundy-600: #7a2e3a;
     --burgundy-light: #a85a63;
+    --amber-600: #c9852e;
+    --amber-light: #e0a94f;
     --danger: #9a3b3b;
     --modal-bg: #241a10;
     --input-bg: rgba(0,0,0,.3);
@@ -273,6 +275,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     z-index: 3;
   }
+  .ribbon-en-proceso { background: var(--amber-600); }
 
   .empty-state {
     text-align: center;
@@ -496,13 +499,51 @@
   .bar-fill-burgundy { background: linear-gradient(90deg, var(--burgundy-600), var(--burgundy-light)); }
   .bar-fill-sage { background: linear-gradient(90deg, var(--sage-600), var(--sage-light)); }
   .bar-list-row .bar-value { font-family: 'JetBrains Mono', monospace; color: var(--parchment-dim); text-align: right; }
+  .bar-list-row.clickable { cursor: pointer; border-radius: 6px; padding: 3px 4px; margin: -3px -4px 5px; transition: background 0.15s ease; }
+  .bar-list-row.clickable:hover { background: rgba(184,147,95,.1); }
+  .bar-list-row.clickable:hover .bar-label { color: var(--brass-100); }
 
   .vbar-chart { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding-top: 10px; overflow-x: auto; }
   .vbar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 34px; height: 100%; }
   .vbar-value { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--brass-300); margin-bottom: 4px; }
   .vbar { width: 26px; border-radius: 4px 4px 2px 2px; transform-origin: bottom center; animation: growY 0.7s cubic-bezier(.16,1,.3,1) both; transition: filter 0.15s ease; box-shadow: 0 3px 8px rgba(0,0,0,.35); }
   .vbar-col:hover .vbar { filter: brightness(1.2); }
+  .vbar-col.clickable { cursor: pointer; }
   .vbar-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--parchment-dim); margin-top: 6px; text-align: center; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .estado-picker { display: inline-flex; border-radius: 999px; overflow: hidden; border: 1px solid rgba(184,147,95,.2); }
+  .estado-picker button {
+    background: rgba(0,0,0,.25);
+    border: none;
+    color: var(--cream-dim);
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .estado-picker button + button { border-left: 1px solid rgba(184,147,95,.18); }
+  .estado-picker button:hover { color: var(--cream); }
+  .estado-picker button.active[data-state="pendiente"] { background: var(--burgundy-600); color: #fff; }
+  .estado-picker button.active[data-state="en_proceso"] { background: var(--amber-600); color: var(--walnut-900); }
+  .estado-picker button.active[data-state="leido"] { background: var(--sage-600); color: #fff; }
+
+  .book-pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+  .book-pick-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,.22);
+    border: 1px solid rgba(184,147,95,.14);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .book-pick-row:hover { border-color: var(--brass-500); background: rgba(184,147,95,.1); }
+  .book-pick-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 14px; color: var(--cream); }
+  .book-pick-author { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--parchment-dim); }
 
   .donut-panel { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
   .donut-panel svg { animation: donutIn 0.6s cubic-bezier(.16,1,.3,1) both; }
@@ -824,8 +865,9 @@
     <input type="text" id="search" placeholder="Buscar por título o autor…" />
     <select id="filter-genero"><option value="">Todos los géneros</option></select>
     <select id="filter-estado">
-      <option value="">Leídos y pendientes</option>
+      <option value="">Todos los estados</option>
       <option value="leido">Solo leídos</option>
+      <option value="en_proceso">En proceso</option>
       <option value="pendiente">Solo pendientes</option>
     </select>
     <select id="filter-idioma"><option value="">Todos los idiomas</option></select>
@@ -876,7 +918,7 @@
         <div id="stats-idioma"></div>
       </div>
       <div class="panel">
-        <h3>Libros por año</h3>
+        <h3>Libros terminados por año</h3>
         <div id="stats-anio"></div>
       </div>
     </div>
@@ -934,6 +976,7 @@
           <label for="f-estado">Estado</label>
           <select id="f-estado">
             <option value="pendiente">Pendiente</option>
+            <option value="en_proceso">En proceso</option>
             <option value="leido">Leído</option>
           </select>
         </div>
@@ -982,6 +1025,16 @@
         <button type="submit" class="btn-primary" id="btn-save-change-password">Actualizar contraseña</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-chart-list" hidden>
+  <div class="modal" style="max-width: 480px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;">
+      <h2 id="chart-list-title" style="margin:0;">Libros</h2>
+      <button class="detail-close-btn" id="btn-chart-list-close" style="position:static;">×</button>
+    </div>
+    <div class="book-pick-list" id="chart-list-body"></div>
   </div>
 </div>
 
@@ -1255,39 +1308,49 @@
   function computeYearCounts() {
     const map = {};
     books.forEach(b => {
-      if (!b.anio) return;
+      if (!b.anio || b.estado !== 'leido') return;
       const y = String(b.anio);
       map[y] = (map[y] || 0) + 1;
     });
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
   }
 
-  function renderBarList(containerId, counts, max, colorClass) {
+  function renderBarList(containerId, counts, max, colorClass, onClick) {
     const container = el(containerId);
     if (counts.length === 0) { container.innerHTML = '<p class="no-data">Sin datos aún.</p>'; return; }
     const top = counts.slice(0, max);
     const maxVal = top[0][1];
     container.innerHTML = top.map(([label, val], i) => `
-      <div class="bar-list-row">
+      <div class="bar-list-row${onClick ? ' clickable' : ''}" data-label="${escapeAttr(label)}">
         <div class="bar-label" title="${escapeAttr(label)}">${escapeHtml(label)}</div>
         <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${(val / maxVal * 100).toFixed(1)}%; animation-delay:${(i * 0.05).toFixed(2)}s"></div></div>
         <div class="bar-value">${val}</div>
       </div>
     `).join('');
+    if (onClick) {
+      container.querySelectorAll('.bar-list-row').forEach(row => {
+        row.addEventListener('click', () => onClick(row.dataset.label));
+      });
+    }
   }
 
-  function renderVBarChart(containerId, counts, max, colorFn) {
+  function renderVBarChart(containerId, counts, max, colorFn, onClick) {
     const container = el(containerId);
     if (counts.length === 0) { container.innerHTML = '<p class="no-data">Sin datos aún.</p>'; return; }
     const top = counts.slice(0, max);
     const maxVal = Math.max(...top.map(c => c[1]));
     container.innerHTML = `<div class="vbar-chart">` + top.map(([label, val], i) => `
-      <div class="vbar-col">
+      <div class="vbar-col${onClick ? ' clickable' : ''}" data-label="${escapeAttr(label)}">
         <div class="vbar-value">${val}</div>
         <div class="vbar" style="height:${Math.max(6, (val / maxVal * 120))}px; animation-delay:${(i * 0.04).toFixed(2)}s; background:${colorFn(label, i)}"></div>
         <div class="vbar-label" title="${escapeAttr(label)}">${escapeHtml(label)}</div>
       </div>
     `).join('') + `</div>`;
+    if (onClick) {
+      container.querySelectorAll('.vbar-col').forEach(col => {
+        col.addEventListener('click', () => onClick(col.dataset.label));
+      });
+    }
   }
 
   function renderDonut(containerId, counts) {
@@ -1317,6 +1380,7 @@
   function renderStats() {
     const totalLibros = books.length;
     const totalLeidos = books.filter(b => b.estado === 'leido').length;
+    const totalEnProceso = books.filter(b => b.estado === 'en_proceso').length;
     const totalPendientes = books.filter(b => b.estado === 'pendiente').length;
     const totalPaginas = books.filter(b => b.estado === 'leido').reduce((s, b) => s + (Number(b.paginas) || 0), 0);
     const rated = books.filter(b => Number(b.calificacion) > 0);
@@ -1324,20 +1388,30 @@
     el('kpi-row').innerHTML = `
       <div class="kpi-card"><div class="kpi-value" id="kpi-libros" style="color:var(--brass-300);">0</div><div class="kpi-label">Total</div></div>
       <div class="kpi-card" style="animation-delay:0.05s"><div class="kpi-value" id="kpi-leidos" style="color:var(--sage-light);">0</div><div class="kpi-label">Leídos</div></div>
-      <div class="kpi-card" style="animation-delay:0.1s"><div class="kpi-value" id="kpi-pendientes" style="color:var(--burgundy-light);">0</div><div class="kpi-label">Pendientes</div></div>
-      <div class="kpi-card" style="animation-delay:0.15s"><div class="kpi-value" id="kpi-paginas" style="color:var(--parchment);">0</div><div class="kpi-label">Páginas leídas</div></div>
-      <div class="kpi-card" style="animation-delay:0.2s"><div class="kpi-value" style="color:var(--brass-300);">${avgRating}</div><div class="kpi-label">Calificación media</div></div>
+      <div class="kpi-card" style="animation-delay:0.1s"><div class="kpi-value" id="kpi-enproceso" style="color:var(--amber-light);">0</div><div class="kpi-label">En proceso</div></div>
+      <div class="kpi-card" style="animation-delay:0.15s"><div class="kpi-value" id="kpi-pendientes" style="color:var(--burgundy-light);">0</div><div class="kpi-label">Pendientes</div></div>
+      <div class="kpi-card" style="animation-delay:0.2s"><div class="kpi-value" id="kpi-paginas" style="color:var(--parchment);">0</div><div class="kpi-label">Páginas leídas</div></div>
+      <div class="kpi-card" style="animation-delay:0.25s"><div class="kpi-value" style="color:var(--brass-300);">${avgRating}</div><div class="kpi-label">Calificación media</div></div>
     `;
     animateNumber(el('kpi-libros'), totalLibros);
     animateNumber(el('kpi-leidos'), totalLeidos);
+    animateNumber(el('kpi-enproceso'), totalEnProceso);
     animateNumber(el('kpi-pendientes'), totalPendientes);
     animateNumber(el('kpi-paginas'), totalPaginas);
-    renderBarList('stats-autores', computeCounts('autor'), 8, 'bar-fill-brass');
-    renderBarList('stats-editoriales', computeCounts('editorial'), 8, 'bar-fill-burgundy');
+    renderBarList('stats-autores', computeCounts('autor'), 8, 'bar-fill-brass', (label) => {
+      openBookListModal(`Autor — ${label}`, books.filter(b => (b.autor || '').toString().trim() === label));
+    });
+    renderBarList('stats-editoriales', computeCounts('editorial'), 8, 'bar-fill-burgundy', (label) => {
+      openBookListModal(`Editorial — ${label}`, books.filter(b => (b.editorial || '').toString().trim() === label));
+    });
     renderProgressList('stats-progreso-genero', computeGenreProgress());
-    renderVBarChart('stats-genero', computeCounts('genero'), 12, (label) => colorForGenre(label));
+    renderVBarChart('stats-genero', computeCounts('genero'), 12, (label) => colorForGenre(label), (label) => {
+      openBookListModal(`Género — ${label}`, books.filter(b => (b.genero || '').toString().trim() === label));
+    });
     renderDonut('stats-idioma', computeCounts('idioma'));
-    renderVBarChart('stats-anio', computeYearCounts(), 12, () => 'linear-gradient(180deg, var(--brass-300), var(--brass-500))');
+    renderVBarChart('stats-anio', computeYearCounts(), 12, () => 'linear-gradient(180deg, var(--brass-300), var(--brass-500))', (label) => {
+      openBookListModal(`Terminados en ${label}`, books.filter(b => b.estado === 'leido' && String(b.anio) === label));
+    });
   }
 
   function lightenColor(hex, amount) {
@@ -1401,8 +1475,9 @@
     spine.setAttribute('role', 'button');
     spine.setAttribute('tabindex', '0');
     spine.dataset.id = b.id;
+    const ribbon = b.estado === 'leido' ? '<div class="ribbon"></div>' : (b.estado === 'en_proceso' ? '<div class="ribbon ribbon-en-proceso"></div>' : '');
     spine.innerHTML = `
-      ${b.estado === 'leido' ? '<div class="ribbon"></div>' : ''}
+      ${ribbon}
       <div class="titulo-vert">${escapeHtml(b.titulo)}</div>
       <div class="autor-vert">${escapeHtml(b.autor)}</div>
     `;
@@ -1618,6 +1693,11 @@
       ['Editorial', b.editorial || '—'],
     ];
     const starsHtml = [1, 2, 3, 4, 5].map(n => `<span class="detail-star" data-star="${n}" style="cursor:pointer; font-size:20px; color:${n <= b.calificacion ? 'var(--brass-500)' : 'rgba(236,225,207,.3)'};">★</span>`).join('');
+    const estadoBtns = [
+      ['pendiente', 'Pendiente'],
+      ['en_proceso', 'En proceso'],
+      ['leido', 'Leído'],
+    ].map(([val, label]) => `<button type="button" class="${b.estado === val ? 'active' : ''}" data-state="${val}">${label}</button>`).join('');
     el('detail-content').innerHTML = `
       <div class="detail-head-colored" style="background:linear-gradient(120deg, ${base}, ${darkenColor(base, 45)});">
         <button class="detail-close-btn" id="btn-detail-close">×</button>
@@ -1627,7 +1707,7 @@
       </div>
       <div class="detail-body">
         <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px; flex-wrap:wrap;">
-          <button class="btn-secondary" id="btn-toggle-estado" style="${b.estado === 'leido' ? 'background:var(--sage-600); color:#fff; border-color:var(--sage-600);' : 'background:var(--burgundy-600); color:#fff; border-color:var(--burgundy-600);'}">${b.estado === 'leido' ? 'Leído' : 'Pendiente'}</button>
+          <div class="estado-picker" id="estado-picker">${estadoBtns}</div>
           <div style="display:flex; gap:3px;">${starsHtml}</div>
         </div>
         <div class="detail-meta">
@@ -1652,14 +1732,18 @@
         render();
       });
     });
-    el('btn-toggle-estado').addEventListener('click', async () => {
-      const newEstado = b.estado === 'leido' ? 'pendiente' : 'leido';
+    el('estado-picker').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const newEstado = btn.dataset.state;
+      if (newEstado === b.estado) return;
       const { error } = await sb.from('libros').update({ estado: newEstado }).eq('id', b.id);
       if (error) { showToast('Error al guardar: ' + error.message); return; }
       b.estado = newEstado;
       closeDetail();
       render();
-      showToast(b.estado === 'leido' ? 'Marcado como leído 📖' : 'Marcado como pendiente');
+      const labels = { pendiente: 'Marcado como pendiente', en_proceso: 'Marcado como en proceso 📖', leido: 'Marcado como leído 📖' };
+      showToast(labels[newEstado]);
     });
     el('btn-edit').addEventListener('click', () => { closeDetail(); openForm(b); });
     el('btn-delete').addEventListener('click', async () => {
@@ -1676,6 +1760,32 @@
   }
   function closeDetail() { el('modal-detail').hidden = true; currentDetailId = null; }
   el('modal-detail').addEventListener('click', (e) => { if (e.target.id === 'modal-detail') closeDetail(); });
+
+  // ---- Modal de lista de libros (drill-down desde gráficos) ----
+  function openBookListModal(title, list) {
+    el('chart-list-title').textContent = title;
+    const container = el('chart-list-body');
+    if (list.length === 0) {
+      container.innerHTML = '<p class="no-data">Sin libros para mostrar.</p>';
+    } else {
+      container.innerHTML = list.map(b => `
+        <div class="book-pick-row" data-id="${b.id}">
+          <span class="book-pick-title">${escapeHtml(b.titulo)}</span>
+          <span class="book-pick-author">${escapeHtml(b.autor)}</span>
+        </div>
+      `).join('');
+      container.querySelectorAll('.book-pick-row').forEach(row => {
+        row.addEventListener('click', () => {
+          closeChartListModal();
+          openDetail(row.dataset.id);
+        });
+      });
+    }
+    el('modal-chart-list').hidden = false;
+  }
+  function closeChartListModal() { el('modal-chart-list').hidden = true; }
+  el('btn-chart-list-close').addEventListener('click', closeChartListModal);
+  el('modal-chart-list').addEventListener('click', (e) => { if (e.target.id === 'modal-chart-list') closeChartListModal(); });
 
   // ---- Toolbar events ----
   ['search', 'filter-genero', 'filter-estado', 'filter-idioma', 'sort-by'].forEach(id => {
